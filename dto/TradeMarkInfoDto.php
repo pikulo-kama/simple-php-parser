@@ -48,5 +48,3 @@ class TradeMarkInfoDto
         $this->details_page_url = data["details_page_url"];
     }
 }
-
-?>

@@ -3,9 +3,11 @@
 require_once 'abstract/DataLoader.php';
 require_once 'abstract/DataMapper.php';
 
-require_once 'dto/UserAgent.php';
 require_once 'util/DataLoaderImpl.php';
 require_once 'util/DataMapperImpl.php';
+require_once 'util/DataFormatterImpl.php';
+
+require_once 'dto/UserAgent.php';
 
 
 class Main
@@ -24,8 +26,8 @@ class Main
     {
         $trade_mark_name = $this->validateTradeMarkOrThrowError();
 
-        $raw_html = $this->dataLoader->getRawData($trade_mark_name, UserAgent::$DEFAULT_USER_AGENT);
-        $trade_marks_info = $this->dataMapper->mapRawDataToTradeMarkDtoList($raw_html);
+        $raw_html = $this->dataLoader->getRecords($trade_mark_name, UserAgent::$DEFAULT_USER_AGENT);
+        $trade_marks_info = $this->dataMapper->mapRecordsToTradeMarkInfoList($raw_html);
 
         print_r($trade_marks_info);
     }
@@ -44,6 +46,5 @@ class Main
 }
 
 //Entry point
-(new Main(new DataLoaderImpl(), new DataMapperImpl()))->main();
 
-?>
+( new Main(new DataLoaderImpl(new DataFormatterImpl()), new DataMapperImpl()) )->main();

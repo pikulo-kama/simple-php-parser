@@ -1,7 +1,10 @@
 <?php
 
+include_once 'abstract/DataFormatter.php';
 include_once 'abstract/DataLoader.php';
+
 include_once 'dto/TradeMarkInfoDto.php';
+include_once 'DataFormatterImpl.php';
 include_once 'DataMapperImpl.php';
 
 
@@ -11,8 +14,13 @@ class DataLoaderImpl implements DataLoader
     private string $searchPageGetUrl = "https://search.ipaustralia.gov.au/trademarks/search/advanced";
     private string $searchPostUrl = "https://search.ipaustralia.gov.au/trademarks/search/doSearch";
 
+    private DataFormatter $dataFormatter;
 
-    public function getRawData(string $trade_mark, string $user_agent): string
+    public function __construct(DataFormatter $dataFormatter) {
+        $this->dataFormatter = $dataFormatter;
+    }
+
+    public function getRecords(string $trade_mark, string $user_agent): array
     {
 
         $ch = curl_init($this->searchPostUrl);
@@ -50,7 +58,7 @@ class DataLoaderImpl implements DataLoader
 
         curl_close($ch);
 
-        return $response;
+        return $this->dataFormatter->reformat($response);
     }
 
 
@@ -66,5 +74,3 @@ class DataLoaderImpl implements DataLoader
         return $token;
     }
 }
-
-?>

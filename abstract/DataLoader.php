@@ -3,8 +3,7 @@
 interface DataLoader
 {
 
-    public function getRawData(string $trade_mark, string $user_agent): string;
+    public function getRecords(string $trade_mark, string $user_agent): array;
 
 }
 
-?>
