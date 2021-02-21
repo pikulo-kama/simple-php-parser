@@ -24,27 +24,38 @@ class Main
 
     public function main()
     {
-        $trade_mark_name = $this->validateTradeMarkOrThrowError();
 
-        $raw_html = $this->dataLoader->getRecords($trade_mark_name, UserAgent::$DEFAULT_USER_AGENT);
+        $options = $this->getValidatedScriptArgs();
+
+        $raw_html = $this->dataLoader->getRecords($options["name"], UserAgent::$DEFAULT_USER_AGENT);
         $trade_marks_info = $this->dataMapper->mapRecordsToTradeMarkInfoList($raw_html);
 
-        print_r($trade_marks_info);
+        print_r(array_slice($trade_marks_info,
+            $options["offset"],
+            $options["length"],
+            true));
     }
 
-    private function validateTradeMarkOrThrowError(): ?string
+    private function getValidatedScriptArgs(): array
     {
 
-        $options = getopt("n:");
+        $options = getopt("n:o:l:");
+
+        $offset = (int)($options["o"] ?? 0);
+        $length = (int)($options["l"] ?? PHP_INT_MAX);
 
         if (!$options["n"]) {
             throw new Exception("Search name is empty. Add -n <name> and try again.");
         }
 
-        return $options["n"];
+        return [
+            "name" => $options["n"],
+            "offset" => $offset,
+            "length" => $length
+        ];
     }
 }
 
 //Entry point
 
-( new Main(new DataLoaderImpl(new DataFormatterImpl()), new DataMapperImpl()) )->main();
+(new Main(new DataLoaderImpl(new DataFormatterImpl()), new DataMapperImpl()))->main();
