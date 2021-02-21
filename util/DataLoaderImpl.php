@@ -56,9 +56,40 @@ class DataLoaderImpl implements DataLoader
             // Handle error here
         }
 
+        // Set request method back to GET
+
+        curl_setopt($ch, CURLOPT_HTTPGET, 1);
+
+        $page_count = $this->getPageCount($this->dataFormatter->removeNewLines($response));
+        $base_url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+
+        $all_records = [];
+
+        // Parse all pagination
+
+        foreach (range(0, $page_count) as $page) {
+            $url = $base_url . "&p=" . $page;
+
+            curl_setopt($ch, CURLOPT_URL, $url);
+            $page_records = $this->dataFormatter->reformat(curl_exec($ch));
+
+            $all_records = array_merge($all_records, $page_records);
+        }
+
         curl_close($ch);
 
-        return $this->dataFormatter->reformat($response);
+        return $all_records;
+    }
+
+    private function getPageCount(string $response, int $pagination_size = 100): int {
+
+        $pattern = '/pagination-count"> Results \d+ to \d+ of (?<count>[\d\,]+)/';
+        preg_match($pattern, $response, $matches);
+
+
+        $records_count =  (int) str_replace(',', '', $matches["count"]);
+
+        return intdiv($records_count, $pagination_size);
     }
 
 
