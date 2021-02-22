@@ -22,7 +22,7 @@ class DataLoaderImpl implements DataLoader
         $this->dataFormatter = $dataFormatter;
     }
 
-    public function getDataInfoDto(string $trade_mark, string $user_agent): DataInfoDto
+    private function getConnection(string $trade_mark, string $user_agent)
     {
 
         $ch = curl_init($this->searchPostUrl);
@@ -48,13 +48,45 @@ class DataLoaderImpl implements DataLoader
         curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
 
 
+        return $ch;
+    }
+
+    public function parsePage(string $trade_mark, int $page_id, string $user_agent): DataInfoDto {
+
+        $ch = $this->getConnection($trade_mark, $user_agent);
         $response = curl_exec($ch);
 
-        if ($error = curl_error($ch)) {
-            // Handle error here
-        }
 
-        // Set request method back to GET
+        curl_setopt($ch, CURLOPT_HTTPGET, 1);
+
+        $page_count = $this->getPageCount($response);
+        $records_count = $this->getRecordsCount($response);
+
+        $base_url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        $url = $base_url . "&p=" . $page_id;
+
+        $pages = [];
+
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+
+        $page_records = $this->dataFormatter->reformat(curl_exec($ch));
+
+        array_push($pages, new Page($page_id, $page_records));
+
+
+        curl_close($ch);
+
+        return new DataInfoDto(
+            $pages, $page_count, $records_count
+        );
+
+    }
+
+    public function parseAllPages(string $trade_mark, string $user_agent): DataInfoDto {
+
+        $ch = $this->getConnection($trade_mark, $user_agent);
+        $response = curl_exec($ch);
 
         curl_setopt($ch, CURLOPT_HTTPGET, 1);
 

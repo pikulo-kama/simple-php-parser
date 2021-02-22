@@ -12,6 +12,8 @@ require_once 'dto/UserAgent.php';
 
 class Main
 {
+    private static int $PAGE_UNSET_STATUS = PHP_INT_MIN;
+    private static int $LENGTH_DEFAULT_VALUE = PHP_INT_MAX;
 
     private DataLoader $dataLoader;
     private DataMapper $dataMapper;
@@ -27,25 +29,33 @@ class Main
 
         $options = $this->getValidatedScriptArgs();
 
-        $data_info = $this->dataLoader->getDataInfoDto(
-            $options["name"],
-            UserAgent::$DEFAULT_USER_AGENT);
 
-        if ($options["page"] == PHP_INT_MIN) {
+        if ($options["page"] == Main::$PAGE_UNSET_STATUS) {
+
+            $data_info = $this->dataLoader->parseAllPages(
+                $options["name"],
+                UserAgent::$DEFAULT_USER_AGENT);
 
             $records = $data_info->allRecords();
-            $trade_marks = $this->dataMapper->mapRecordsToTradeMarkInfoList($records);
-
-            print_r(array_slice($trade_marks, $options["offset"],
-                $options["length"], true));
 
         } else {
 
-            $records = $data_info->byPageId($options["page"]);
-            $trade_marks = $this->dataMapper->mapRecordsToTradeMarkInfoList($records);
+            $data_info = $this->dataLoader->parsePage(
+                $options["name"],
+                $options["page"],
+                UserAgent::$DEFAULT_USER_AGENT);
 
-            print_r($trade_marks);
+            $records = $data_info->allRecords();
         }
+
+
+        $trade_marks = $this->dataMapper->mapRecordsToTradeMarkInfoList($records);
+
+        print_r($trade_marks);
+        print_r($options);
+        print_r(array_slice($trade_marks, $options["offset"],
+            $options["length"], true));
+
 
         if ($options["page_count"]) {
 
@@ -74,9 +84,9 @@ class Main
         $valid_options["record_count"] = array_key_exists("r", $options);
 
         $valid_options["offset"] = (int)($options["o"] ?? 0);
-        $valid_options["length"] = (int)($options["l"] ?? PHP_INT_MAX);
+        $valid_options["length"] = (int)($options["l"] ?? Main::$LENGTH_DEFAULT_VALUE);
 
-        if ($options["p"]) {
+        if (array_key_exists("p", $options)) {
             preg_match('/\d+/', $options["p"], $match);
 
             if (!$match) {
@@ -84,7 +94,7 @@ class Main
             }
         }
 
-        $valid_options["page"] = (int) ($options["p"] ?? PHP_INT_MIN);
+        $valid_options["page"] = (int) ($options["p"] ?? Main::$PAGE_UNSET_STATUS);
 
         return $valid_options;
     }
