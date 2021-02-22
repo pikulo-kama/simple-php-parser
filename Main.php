@@ -27,32 +27,66 @@ class Main
 
         $options = $this->getValidatedScriptArgs();
 
-        $raw_html = $this->dataLoader->getRecords($options["name"], UserAgent::$DEFAULT_USER_AGENT);
-        $trade_marks_info = $this->dataMapper->mapRecordsToTradeMarkInfoList($raw_html);
+        $data_info = $this->dataLoader->getDataInfoDto(
+            $options["name"],
+            UserAgent::$DEFAULT_USER_AGENT);
 
-        print_r(array_slice($trade_marks_info,
-            $options["offset"],
-            $options["length"],
-            true));
+        if ($options["page"] == PHP_INT_MIN) {
+
+            $records = $data_info->allRecords();
+            $trade_marks = $this->dataMapper->mapRecordsToTradeMarkInfoList($records);
+
+            print_r(array_slice($trade_marks, $options["offset"],
+                $options["length"], true));
+
+        } else {
+
+            $records = $data_info->byPageId($options["page"]);
+            $trade_marks = $this->dataMapper->mapRecordsToTradeMarkInfoList($records);
+
+            print_r($trade_marks);
+        }
+
+        if ($options["page_count"]) {
+
+            echo "\n\nTotal number of pages: " . $data_info->getTotalPages();
+        }
+
+        if ($options["record_count"]) {
+            echo "\n\nTotal number of records: " . $data_info->getTotalRecords();
+        }
+
     }
 
     private function getValidatedScriptArgs(): array
     {
 
-        $options = getopt("n:o:l:");
-
-        $offset = (int)($options["o"] ?? 0);
-        $length = (int)($options["l"] ?? PHP_INT_MAX);
+        $options = getopt("n:o:l:p:rc");
+        $valid_options = [];
 
         if (!$options["n"]) {
             throw new Exception("Search name is empty. Add -n <name> and try again.");
         }
 
-        return [
-            "name" => $options["n"],
-            "offset" => $offset,
-            "length" => $length
-        ];
+        $valid_options["name"] = $options["n"];
+
+        $valid_options["page_count"] =  array_key_exists("c", $options);
+        $valid_options["record_count"] = array_key_exists("r", $options);
+
+        $valid_options["offset"] = (int)($options["o"] ?? 0);
+        $valid_options["length"] = (int)($options["l"] ?? PHP_INT_MAX);
+
+        if ($options["p"]) {
+            preg_match('/\d+/', $options["p"], $match);
+
+            if (!$match) {
+                throw new Exception("Page number is in incorrect format.");
+            }
+        }
+
+        $valid_options["page"] = (int) ($options["p"] ?? PHP_INT_MIN);
+
+        return $valid_options;
     }
 }
 

@@ -6,6 +6,8 @@ include_once 'abstract/DataLoader.php';
 include_once 'dto/TradeMarkInfoDto.php';
 include_once 'DataFormatterImpl.php';
 include_once 'DataMapperImpl.php';
+include_once 'dto/Page.php';
+include_once 'dto/DataInfoDto.php';
 
 
 class DataLoaderImpl implements DataLoader
@@ -20,7 +22,7 @@ class DataLoaderImpl implements DataLoader
         $this->dataFormatter = $dataFormatter;
     }
 
-    public function getRecords(string $trade_mark, string $user_agent): array
+    public function getDataInfoDto(string $trade_mark, string $user_agent): DataInfoDto
     {
 
         $ch = curl_init($this->searchPostUrl);
@@ -48,7 +50,6 @@ class DataLoaderImpl implements DataLoader
 
         $response = curl_exec($ch);
 
-
         if ($error = curl_error($ch)) {
             // Handle error here
         }
@@ -57,36 +58,45 @@ class DataLoaderImpl implements DataLoader
 
         curl_setopt($ch, CURLOPT_HTTPGET, 1);
 
-        $page_count = $this->getPageCount($this->dataFormatter->removeNewLines($response));
+        $page_count = $this->getPageCount($response);
+        $records_count = $this->getRecordsCount($response);
+
         $base_url = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
 
-        $all_records = [];
+        $pages = [];
 
         // Parse all pagination
 
-        foreach (range(0, $page_count) as $page) {
-            $url = $base_url . "&p=" . $page;
+        foreach (range(0, $page_count) as $page_id) {
+            $url = $base_url . "&p=" . $page_id;
 
             curl_setopt($ch, CURLOPT_URL, $url);
             $page_records = $this->dataFormatter->reformat(curl_exec($ch));
 
-            $all_records = array_merge($all_records, $page_records);
+            array_push($pages, new Page($page_id, $page_records));
         }
 
         curl_close($ch);
 
-        return $all_records;
+        return new DataInfoDto(
+            $pages, $page_count, $records_count
+        );
     }
 
     private function getPageCount(string $response, int $pagination_size = 100): int {
+        
+        return intdiv($this->getRecordsCount($response), $pagination_size);
+    }
+    
+    private function getRecordsCount(string $response) {
 
         $pattern = '/pagination-count"> Results \d+ to \d+ of (?<count>[\d\,]+)/';
+        $response = $this->dataFormatter->removeNewLines($response);
+
         preg_match($pattern, $response, $matches);
 
 
-        $records_count =  (int) str_replace(',', '', $matches["count"]);
-
-        return intdiv($records_count, $pagination_size);
+        return (int) str_replace(',', '', $matches["count"]);
     }
 
 
