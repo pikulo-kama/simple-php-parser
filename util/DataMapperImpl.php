@@ -63,9 +63,6 @@ class DataMapperImpl implements DataMapper
 
         preg_match($main_pattern, $record, $matches);
 
-//        echo $main_pattern;
-//        echo $record;
-//        exit(1);
         // FIX: Try to join this two expressions in one.
         // Reason why I separated regex in two, because using ()? operator
         // even if there was image it was omitted.

@@ -34,13 +34,10 @@ class DataLoaderImpl implements DataLoader
         ], '', '&');
 
 
-        curl_exec($ch);
-
         curl_setopt($ch, CURLOPT_USERAGENT, $user_agent);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 
-        curl_setopt($ch, CURLOPT_COOKIEJAR, "../cookie.txt");
         curl_setopt($ch, CURLOPT_COOKIE, "XSRF-TOKEN=" . $csrf_token);
 
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
